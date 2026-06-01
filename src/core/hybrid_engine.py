@@ -70,6 +70,7 @@ class HybridEngine:
             quote_denomination=quote_denomination,
             history_file_path=history_file_path
         )
+        self.yoyo.engine = self
         logger.info("🧠 HybridEngine initialized with End-to-End PurePPOStrategy (PPO-LSTM).")
         
         # ثبت هوک‌های مربوط به استراتژی جاری ربات
@@ -77,6 +78,10 @@ class HybridEngine:
             on_entry=self._handle_yoyo_entry,
             on_exit=self._handle_yoyo_exit
         )
+
+        # بارگذاری لیست اخبار مهم جهانی در حافظه موقت (RAM)
+        self.macro_news_events = []
+        self._load_macro_news()
 
         # هوک نهایی خروجی موتور هیبرید جهت اجرا سفارش در صرافی
         self.on_execution_callback: Optional[Callable[[dict], None]] = None
@@ -159,7 +164,7 @@ class HybridEngine:
         """مدیریت هوشمند سیگنال‌های ورود با فیلترهای ۲۹ گانه حفاظتی و لایه PPO"""
         symbol = trade_proposal["symbol"]
         side = trade_proposal["side"]
-        now_ms = int(time.time() * 1000)
+        now_ms = int(time.time() * 1000) + Config.CLOCK_DRIFT_MS
         
         # ۱. دریافت اطلاعات دفترچه سفارشات و معاملات زنجیره‌ای
         lob_result = self.latest_lob_results.get(symbol)
@@ -179,6 +184,10 @@ class HybridEngine:
         
         # ۳. ارزیابی گام‌به‌گام و ثبت نتایج تک‌تک ۲۹ فیلتر کنترلی
         filter_results = {}
+        
+        # فیلترهای فاندامنتال جدید اخبار کلان و فاندینگ ریت صرافی
+        filter_results["MACRO_NEWS_FILTER"] = self._check_macro_news_window(now_ms)
+        filter_results["FUNDING_RATE_FILTER"] = self._check_funding_rate_window(now_ms)
         
         # فیلتر ۱: نیاز به داده اردر بوک
         filter_results["LOB_DATA_REQUIRED"] = (lob_result is not None)
@@ -397,3 +406,67 @@ class HybridEngine:
                 self.on_execution_exit_callback(symbol, trade, exit_price, pnl, reason)
             except Exception as e:
                 logger.error(f"Error executing exit: {e}")
+
+    def _load_macro_news(self) -> None:
+        """بارگذاری فایل اخبار اقتصاد کلان در حافظه موقت In-Memory"""
+        import json
+        self.macro_news_events = []
+        filepath = Config.MACRO_NEWS_SCHEDULE_FILE
+        if os.path.exists(filepath):
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    self.macro_news_events = data.get("events", [])
+                logger.info(f"📂 Loaded {len(self.macro_news_events)} macro news events into memory.")
+            except Exception as e:
+                logger.error(f"Failed to load macro news schedule: {e}")
+
+    def _check_macro_news_window(self, now_ms: int) -> bool:
+        """بررسی بازه زمانی اخبار اقتصاد کلان (۵ دقیقه قبل و بعد از خبر) به همراه پاکسازی هوشمند"""
+        active_events = []
+        is_blocked = False
+        
+        # پاکسازی هوشمند (Garbage Collection): اخبار قدیمی‌تر از ۵ دقیقه کامل از حافظه حذف می‌شوند
+        for event in self.macro_news_events:
+            event_time = event["timestamp"]
+            # اگر خبر قدیمی‌تر از ۵ دقیقه (۳۰۰,۰۰۰ میلی‌ثانیه) است، از لیست خارج می‌شود
+            if event_time + 300000 < now_ms:
+                continue
+            
+            active_events.append(event)
+            
+            # بازه ۵ دقیقه قبل و بعد از خبر (۳۰۰,۰۰۰ میلی‌ثانیه)
+            if abs(now_ms - event_time) <= 300000:
+                is_blocked = True
+                logger.warning(f"🚨 Macro News Block Active: {event['name']} | Difference: {abs(now_ms - event_time)/1000} seconds")
+
+        # به‌روزرسانی حافظه موقت با رویدادهای فیلترشده
+        self.macro_news_events = active_events
+        return not is_blocked
+
+    def _check_funding_rate_window(self, now_ms: int) -> bool:
+        """بررسی بازه پرداخت فاندینگ ریت (۳ دقیقه منتهی به پرداخت فاندینگ ریت ۸ ساعته UTC)"""
+        import datetime
+        # ساعت جهانی UTC لحظه‌ای بر اساس زمان همگام شده
+        now_utc = datetime.datetime.fromtimestamp(now_ms / 1000.0, tz=datetime.timezone.utc)
+        
+        # چرخه‌های ۸ ساعته فاندینگ ریت
+        funding_hours = [0, 8, 16, 24]
+        current_hour = now_utc.hour
+        
+        # پیدا کردن چرخه بعدی
+        next_hour = min([h for h in funding_hours if h > current_hour])
+        
+        if next_hour == 24:
+            next_funding_time = now_utc.replace(hour=0, minute=0, second=0, microsecond=0) + datetime.timedelta(days=1)
+        else:
+            next_funding_time = now_utc.replace(hour=next_hour, minute=0, second=0, microsecond=0)
+            
+        remaining_seconds = (next_funding_time - now_utc).total_seconds()
+        
+        # مسدودسازی در بازه ۱۸۰ ثانیه (۳ دقیقه) منتهی به فاندینگ ریت
+        if remaining_seconds <= 180:
+            logger.warning(f"🚨 Funding Rate Block Active: {remaining_seconds:.1f} seconds remaining to next cycle ({next_hour}:00 UTC)")
+            return False
+            
+        return True

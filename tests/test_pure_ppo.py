@@ -316,6 +316,73 @@ class TestPurePPOAndFilters(unittest.IsolatedAsyncioTestCase):
         # تایید قبولی سفارش پس از اتمام دوره خنک‌سازی
         self.assertEqual(len(self.approved_entries), 1)
 
+    def test_funding_rate_filter_block(self):
+        """تایید مسدودسازی تراکنش‌ها در بازه ۳ دقیقه‌ای منتهی به پرداخت فاندینگ ریت چرخه ۸ ساعته UTC"""
+        # شبیه‌سازی زمانی: ۱ دقیقه و ۳۰ ثانیه قبل از ساعت ۰۸:۰۰ UTC (یعنی ۰۷:۵۸:۳۰ UTC)
+        import datetime
+        mock_date = datetime.datetime(2026, 6, 1, 7, 58, 30, tzinfo=datetime.timezone.utc)
+        mock_now_ms = int(mock_date.timestamp() * 1000)
+        
+        # بررسی فعال شدن فیلتر و رد کردن
+        self.assertFalse(self.engine._check_funding_rate_window(mock_now_ms))
+        
+        # شبیه‌سازی زمانی: ۱۰ دقیقه قبل از ساعت ۰۸:۰۰ UTC (یعنی ۰۷:۵۰:۰۰ UTC)
+        mock_date_safe = datetime.datetime(2026, 6, 1, 7, 50, 0, tzinfo=datetime.timezone.utc)
+        mock_now_ms_safe = int(mock_date_safe.timestamp() * 1000)
+        
+        # بررسی غیرفعال بودن فیلتر و قبولی
+        self.assertTrue(self.engine._check_funding_rate_window(mock_now_ms_safe))
+
+    def test_macro_news_filter_block_and_garbage_collection(self):
+        """تایید مسدودسازی در بازه ۵ دقیقه اخبار کلان و پاکسازی خودکار رویدادهای گذشته از حافظه"""
+        # زمان انتشار خبر فرضی
+        news_time_ms = int(time.time() * 1000)
+        self.engine.macro_news_events = [
+            {"name": "US CPI Release", "timestamp": news_time_ms}
+        ]
+        
+        # ۱. شبیه‌سازی زمان در بازه ممنوعه (۲ دقیقه قبل از خبر)
+        mock_now_active = news_time_ms - 120000
+        self.assertFalse(self.engine._check_macro_news_window(mock_now_active))
+        # تایید عدم پاکسازی خبر چون هنوز منقضی نشده است
+        self.assertEqual(len(self.engine.macro_news_events), 1)
+        
+        # ۲. شبیه‌سازی زمان بعد از بازه ممنوعه و انقضای خبر (۶ دقیقه بعد از خبر - یعنی ۳۶۰,۰۰۰ میلی‌ثانیه)
+        mock_now_expired = news_time_ms + 360000
+        self.assertTrue(self.engine._check_macro_news_window(mock_now_expired))
+        # تایید پاکسازی خودکار رویداد منقضی شده از آرایه حافظه موقت (Garbage Collection)
+        self.assertEqual(len(self.engine.macro_news_events), 0)
+
+    async def test_pending_order_cancellation_during_news_block(self):
+        """تایید لغو خودکار سفارشات معلق (pending) به محض ورود به بازه ممنوعه فاندامنتال"""
+        now_ms = int(time.time() * 1000)
+        
+        # ایجاد سفارش معلق در استراتژی
+        trade_proposal = self._create_test_proposal(now_ms)
+        self.engine.yoyo.active_trades[self.symbol] = trade_proposal["yoyo_data"]
+        
+        # ایجاد یک خبر کلان فعال در ردیاب موتور هیبریدی
+        self.engine.macro_news_events = [
+            {"name": "FOMC Interest Rate Decision", "timestamp": now_ms}
+        ]
+        
+        # تغذیه تیک قیمتی جدید در بازه خبری (ساعت جاری)
+        tick = {
+            "symbol": self.symbol,
+            "price": 1.5,
+            "timestamp": now_ms,
+            "lob_result": None,
+            "dex_trades": []
+        }
+        
+        # فراخوانی متد پردازش تیک ناهمگام
+        await self.engine.yoyo._handle_tick_async(tick)
+        
+        # تایید اینکه سفارش معلق به دلیل وقوع خبر لغو و از لیست حذف شده است
+        self.assertNotIn(self.symbol, self.engine.yoyo.active_trades)
+        # تایید ثبت زمان خروج در ردیاب استراحت استراتژی
+        self.assertEqual(self.engine.yoyo.last_exit_times[self.symbol], now_ms)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -205,8 +205,27 @@ class PurePPOStrategy:
         while history and history[0]["timestamp"] < cutoff:
             history.popleft()
 
-        # ۲. بررسی پوزیشن باز فعال
+        # ۲. بررسی فیلترهای فاندامنتال (اخبار کلان و فاندینگ ریت) و لغو سفارشات معلق PPO
         active_trade = self.active_trades.get(symbol)
+        if hasattr(self, "engine") and self.engine:
+            drift_now_ms = now + Config.CLOCK_DRIFT_MS
+            macro_ok = self.engine._check_macro_news_window(drift_now_ms)
+            funding_ok = self.engine._check_funding_rate_window(drift_now_ms)
+            
+            if not macro_ok or not funding_ok:
+                if active_trade:
+                    if active_trade["status"] == "pending":
+                        logger.warning(
+                            f"🚨 Pending limit order for {symbol} cancelled due to fundamental block! "
+                            f"Macro News: {'OK' if macro_ok else 'BLOCKED'} | Funding Rate: {'OK' if funding_ok else 'BLOCKED'}"
+                        )
+                        self._cancel_trade(symbol, now)
+                        return
+                else:
+                    # هیچ موقعیت بازی نداریم و به دلیل شرایط بلاک خبری/فاندینگ ریت مجاز به ثبت سفارش جدید نیستیم
+                    return
+
+        # ۳. بررسی پوزیشن باز فعال
         if active_trade:
             await self._monitor_position_async(symbol, price, now, active_trade)
             return

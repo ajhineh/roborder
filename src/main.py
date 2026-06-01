@@ -3,6 +3,7 @@ import io
 import os
 import asyncio
 import logging
+import time
 from typing import List
 import ccxt.pro as ccxt
 
@@ -295,6 +296,23 @@ async def main():
         logger.info(f"🔗 Using custom WebSocket endpoint: {Config.CUSTOM_WS_ENDPOINT}")
 
     exchange = exchange_class(exchange_options)
+    
+    # همگام‌سازی زمان سرور با ساعت جهانی صرافی (NTP Synchronization)
+    try:
+        logger.info("⏱️ Synchronizing system clock with exchange time...")
+        local_before = int(time.time() * 1000)
+        server_time = await exchange.fetch_time()
+        local_after = int(time.time() * 1000)
+        
+        # محاسبه دقیق اختلاف با احتساب تاخیر شبکه (Network RTT)
+        rtt = (local_after - local_before) // 2
+        local_midpoint = local_before + rtt
+        drift = server_time - local_midpoint
+        Config.CLOCK_DRIFT_MS = drift
+        logger.info(f"⏱️ Time sync completed. Clock Drift: {drift:+} ms | Network RTT: {rtt * 2} ms")
+    except Exception as e:
+        logger.error(f"⚠️ Failed to sync clock with exchange: {e}. Defaulting to system time.")
+        Config.CLOCK_DRIFT_MS = 0
     
     # ۵. راه‌اندازی شمع‌های تاریخی برای استراتژی فعال (YoYo / PPO)
     yoyo_task = None

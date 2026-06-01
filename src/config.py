@@ -68,6 +68,8 @@ class Config:
     HELIUS_WS_URL: str = ""
     QUICKNODE_WS_URL: str = ""
     HISTORY_FILE_PATH: str = "microtick_history.json"
+    MACRO_NEWS_SCHEDULE_FILE: str = "macro_news_schedule.json"
+    CLOCK_DRIFT_MS: int = 0
     SYMBOLS: List[str] = []
 
     # --- دفترچه سفارشات LOB ---
