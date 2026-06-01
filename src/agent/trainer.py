@@ -167,6 +167,7 @@ def train_agent(
             lstm_hidden_size=128,
             n_lstm_layers=1,
             shared_lstm=True,
+            enable_critic_lstm=False,
             net_arch=dict(pi=[64, 64], vf=[64, 64])
         )
         model = RecurrentPPO(
