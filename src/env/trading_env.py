@@ -24,7 +24,7 @@ class FuturesTradingEnv(gym.Env):
     ):
         super(FuturesTradingEnv, self).__init__()
         
-        self.df = df.copy() if df is not None else pd.DataFrame()
+        self.df = self._build_volume_bars(df.copy()) if df is not None else pd.DataFrame()
         self.n_steps = len(self.df) if df is not None else 100000
         self.max_inventory = max_inventory
         self.transaction_fee_rate = transaction_fee_rate
@@ -258,5 +258,97 @@ class FuturesTradingEnv(gym.Env):
                 "transaction_fee": transaction_fee + terminal_liquidation_fee,
                 "slippage": slippage_rate * ref_price
             }
-        
         return observation, reward, terminated, truncated, info
+
+    def _build_volume_bars(self, raw_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        تبدیل کندل‌های زمانی به کندل‌های حجمی داینامیک بر اساس میانگین حجم ۲۴ ساعته متحرک (Comment 1)
+        و محاسبه شاخص OBI با وزن حجمی (Volume-Weighted OBI) در طول کل زمان شکل‌گیری کندل حجمی (Comment 2).
+        """
+        import numpy as np
+        import pandas as pd
+
+        # بررسی وجود ستون‌های مورد نیاز
+        if "volume" not in raw_df.columns or "mid_price" not in raw_df.columns:
+            return raw_df
+
+        # ۱. محاسبه حجم میانگین متحرک ۲۴ ساعته (معادل ۱۴۴۰ کندل ۱ دقیقه‌ای)
+        rolling_24h_sum = raw_df["volume"].rolling(window=1440, min_periods=1).sum()
+        
+        volume_bars = []
+        current_volume = 0.0
+        current_ticks = []
+        
+        for idx in range(len(raw_df)):
+            row = raw_df.iloc[idx]
+            # حجم دلاری اتمیک این کندل زمانی
+            vol_val = row["volume"] * row["mid_price"]
+            current_ticks.append(row)
+            current_volume += vol_val
+            
+            # آستانه داینامیک: ۵ درصد از کل حجم ۲۴ ساعت گذشته (Comment 1)
+            v_thresh = 0.05 * (rolling_24h_sum.iloc[idx] * row["mid_price"])
+            if pd.isna(v_thresh) or v_thresh <= 1000.0:
+                v_thresh = 50000.0 # فالبک امن در صورت کم بودن شدید حجم
+                
+            if current_volume >= v_thresh:
+                # بستن کندل حجمی و استخراج مقادیر جدید
+                opens = current_ticks[0]["open"] if "open" in current_ticks[0] else current_ticks[0]["mid_price"]
+                closes = current_ticks[-1]["close"] if "close" in current_ticks[-1] else current_ticks[-1]["mid_price"]
+                highs = max([t.get("high", t["mid_price"]) for t in current_ticks])
+                lows = min([t.get("low", t["mid_price"]) for t in current_ticks])
+                
+                # محاسبه OBI وزن‌دهی شده با حجم در کل طول زمان شکل‌گیری کندل حجمی (Comment 2)
+                total_vol = sum([t["volume"] for t in current_ticks])
+                if total_vol > 0:
+                    # موازنه اتمیک Bid/Ask عمق دفترچه سفارش با وزن‌دهی حجم معاملات
+                    vw_obi = sum([
+                        t["volume"] * (
+                            (t.get("bid_depth", 1.0) - t.get("ask_depth", 1.0)) / 
+                            (t.get("bid_depth", 1.0) + t.get("ask_depth", 1.0) + 1e-8)
+                        ) for t in current_ticks
+                    ]) / total_vol
+                else:
+                    vw_obi = 0.0
+                
+                bar = {
+                    "open": opens,
+                    "high": highs,
+                    "low": lows,
+                    "close": closes,
+                    "mid_price": closes,
+                    "volume": total_vol,
+                    "bid_depth": sum([t.get("bid_depth", 1.0) for t in current_ticks]),
+                    "ask_depth": sum([t.get("ask_depth", 1.0) for t in current_ticks]),
+                    "depth_imbalance": vw_obi, # موازنه انباشته OBI
+                    "spread": np.mean([t.get("spread", 0.0) for t in current_ticks]),
+                    "basis": np.mean([t.get("basis", 0.0) for t in current_ticks]),
+                    "carry": np.mean([t.get("carry", 0.0001) for t in current_ticks]),
+                    "volatility": np.std([t["mid_price"] for t in current_ticks]) / np.mean([t["mid_price"] for t in current_ticks]) if len(current_ticks) > 1 else 0.02,
+                    "convenience_yield": np.mean([t.get("convenience_yield", 0.0) for t in current_ticks]),
+                    "speculator_ratio": np.mean([t.get("speculator_ratio", 0.5) for t in current_ticks]),
+                    "sentiment": np.mean([t.get("sentiment", 0.0) for t in current_ticks]),
+                    "surprise": np.mean([t.get("surprise", 0.0) for t in current_ticks]),
+                }
+                
+                # فیلدهای دلخواه برای فالبک و تطابق با استراتژی YoYo
+                for fld in ["spread_ratio", "basis_ratio", "volatility_ratio", "carry_ratio", "roll_yield"]:
+                    if fld in current_ticks[0]:
+                        bar[fld] = np.mean([t[fld] for t in current_ticks])
+                for fld in ["f_low", "f_high", "futures_price", "spread", "basis", "carry"]:
+                    if fld in current_ticks[0]:
+                        if fld == "f_low":
+                            bar[fld] = min([t[fld] for t in current_ticks])
+                        elif fld == "f_high":
+                            bar[fld] = max([t[fld] for t in current_ticks])
+                        else:
+                            bar[fld] = current_ticks[-1][fld]
+                
+                volume_bars.append(bar)
+                current_volume = 0.0
+                current_ticks = []
+                
+        if len(volume_bars) == 0:
+            return raw_df
+            
+        return pd.DataFrame(volume_bars)
