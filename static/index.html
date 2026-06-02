@@ -2239,7 +2239,10 @@
 
                         if (isEntry && entryCandidate.symbol === symbol && !matchedEntries.has(j) && sideMatches) {
                             matchingEntry = entryCandidate;
-                            matchedEntries.add(j);
+                            const fullyExited = s.fullyExited !== false;
+                            if (fullyExited) {
+                                matchedEntries.add(j);
+                            }
                             break;
                         }
                     }
