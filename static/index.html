@@ -4,23 +4,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ROBORDER-X // کنترل پنل تعاملی هوشمند</title>
+    <title>ROBOCHILD // کنترل پنل تعاملی هوشمند</title>
     <!-- Google Fonts -->
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Vazirmatn:wght@300;400;600;800&display=swap"
         rel="stylesheet">
     <style>
         :root {
-            --bg-color: #080711;
-            --card-bg: rgba(255, 255, 255, 0.03);
-            --card-border: rgba(255, 255, 255, 0.08);
-            --primary-glow: #7928ca;
-            --secondary-glow: #0070f3;
-            --accent-cyan: #00dfd8;
-            --neon-green: #00ff87;
-            --neon-red: #ff007f;
-            --text-main: #f5f5f7;
-            --text-muted: #8e8e93;
+            --bg-color: #f6f8fa;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --card-border: rgba(0, 0, 0, 0.08);
+            --primary-glow: #0070f3;
+            --secondary-glow: #00dfd8;
+            --accent-cyan: #0056b3;
+            --neon-green: #1f8722;
+            --neon-red: #d9383a;
+            --text-main: #1a1f26;
+            --text-muted: #626f84;
             --font-family: 'Vazirmatn', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
@@ -30,7 +30,7 @@
             padding: 0;
             font-family: var(--font-family);
             scrollbar-width: thin;
-            scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+            scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
         }
 
         body {
@@ -39,8 +39,8 @@
             min-height: 100vh;
             overflow-x: hidden;
             background-image:
-                radial-gradient(circle at 10% 20%, rgba(121, 40, 202, 0.15) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(0, 112, 243, 0.15) 0%, transparent 40%);
+                radial-gradient(circle at 10% 20%, rgba(0, 112, 243, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 223, 216, 0.05) 0%, transparent 40%);
             background-attachment: fixed;
         }
 
@@ -56,7 +56,7 @@
 
         /* Glassmorphic Navbar */
         header {
-            background: rgba(255, 255, 255, 0.01);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--card-border);
@@ -65,7 +65,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
         }
 
         .logo-area {
@@ -85,24 +85,24 @@
             font-weight: 800;
             font-size: 20px;
             color: #fff;
-            box-shadow: 0 0 20px rgba(121, 40, 202, 0.4);
+            box-shadow: 0 0 10px rgba(0, 112, 243, 0.2);
             animation: pulse 2s infinite alternate;
         }
 
         @keyframes pulse {
             0% {
-                box-shadow: 0 0 10px rgba(121, 40, 202, 0.4);
+                box-shadow: 0 0 5px rgba(0, 112, 243, 0.2);
             }
 
             100% {
-                box-shadow: 0 0 25px rgba(0, 112, 243, 0.8);
+                box-shadow: 0 0 15px rgba(0, 223, 216, 0.4);
             }
         }
 
         .logo-title h1 {
             font-size: 22px;
             font-weight: 800;
-            background: linear-gradient(to left, #fff, var(--accent-cyan));
+            background: linear-gradient(to left, var(--text-main), var(--primary-glow));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -133,14 +133,15 @@
 
         .nav-btn:hover {
             color: var(--text-main);
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.04);
         }
 
         .nav-btn.active {
             color: #fff;
-            background: linear-gradient(135deg, rgba(121, 40, 202, 0.2), rgba(0, 112, 243, 0.2));
+            background: linear-gradient(135deg, rgba(0, 112, 243, 0.1), rgba(0, 223, 216, 0.1));
             border-color: var(--card-border);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+            color: var(--text-main) !important;
         }
 
         /* Metric Grid Cards */
@@ -159,12 +160,14 @@
             padding: 24px;
             position: relative;
             overflow: hidden;
-            transition: transform 0.3s;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
         }
 
         .metric-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-3px);
+            border-color: rgba(0, 0, 0, 0.15);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
         }
 
         .metric-card::before {
@@ -174,7 +177,7 @@
             right: 0;
             width: 40px;
             height: 40px;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(0, 112, 243, 0.03) 0%, transparent 70%);
         }
 
         .metric-title {
@@ -234,7 +237,7 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
         }
 
         .panel-header {
@@ -272,7 +275,7 @@
 
         .asset-item {
             position: relative;
-            background: rgba(255, 255, 255, 0.01);
+            background: rgba(0, 0, 0, 0.02);
             border: 1px solid var(--card-border);
             border-radius: 12px;
             padding: 18px;
@@ -280,8 +283,8 @@
         }
 
         .asset-item:hover {
-            background: rgba(255, 255, 255, 0.03);
-            border-color: rgba(255, 255, 255, 0.12);
+            background: rgba(0, 0, 0, 0.04);
+            border-color: rgba(0, 0, 0, 0.12);
         }
 
         /* Card Cross Close Button */
@@ -372,7 +375,7 @@
 
         .obi-bar-outer {
             height: 10px;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.05);
             border-radius: 5px;
             overflow: hidden;
             position: relative;
@@ -381,14 +384,14 @@
 
         .obi-bar-left {
             height: 100%;
-            background: linear-gradient(to right, var(--neon-red), rgba(255, 255, 255, 0.1));
+            background: linear-gradient(to right, var(--neon-red), rgba(0, 0, 0, 0.05));
             width: 50%;
             transition: width 0.5s ease;
         }
 
         .obi-bar-right {
             height: 100%;
-            background: linear-gradient(to right, rgba(255, 255, 255, 0.1), var(--neon-green));
+            background: linear-gradient(to right, rgba(0, 0, 0, 0.05), var(--neon-green));
             width: 50%;
             transition: width 0.5s ease;
         }
@@ -399,8 +402,8 @@
             top: 0;
             width: 2px;
             height: 100%;
-            background: #fff;
-            box-shadow: 0 0 5px #fff;
+            background: #1a1f26;
+            box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
             transform: translateX(-50%);
         }
 
@@ -413,10 +416,10 @@
         }
 
         .vol-box {
-            background: rgba(0, 0, 0, 0.2);
+            background: rgba(0, 0, 0, 0.04);
             border-radius: 8px;
             padding: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
         }
 
         .vol-label {
@@ -433,7 +436,7 @@
 
         /* Terminal Console */
         .console-log {
-            background: #04030a;
+            background: #ffffff;
             border: 1px solid var(--card-border);
             border-radius: 12px;
             padding: 16px;
@@ -444,25 +447,25 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
-            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.8);
+            box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.05);
         }
 
         .log-line {
             line-height: 1.5;
             white-space: pre-wrap;
-            color: #ddd;
+            color: #333333;
         }
 
         .log-info {
-            color: #8ea8f7;
+            color: #0056b3;
         }
 
         .log-warn {
-            color: #f5d16c;
+            color: #b28200;
         }
 
         .log-error {
-            color: #f77d8a;
+            color: #a82224;
             font-weight: bold;
         }
 
@@ -483,7 +486,7 @@
 
         .open-positions-table td {
             padding: 12px 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--card-border);
             font-family: 'Inter', sans-serif;
         }
 
@@ -502,11 +505,11 @@
         }
 
         .form-control {
-            background: rgba(0, 0, 0, 0.3);
+            background: #ffffff;
             border: 1px solid var(--card-border);
             border-radius: 8px;
             padding: 10px 14px;
-            color: #fff;
+            color: var(--text-main);
             font-size: 14px;
             font-family: 'Inter', sans-serif;
             transition: border-color 0.3s;
@@ -515,7 +518,7 @@
         .form-control:focus {
             outline: none;
             border-color: var(--primary-glow);
-            box-shadow: 0 0 10px rgba(121, 40, 202, 0.3);
+            box-shadow: 0 0 8px rgba(0, 112, 243, 0.2);
         }
 
         .form-row {
@@ -529,7 +532,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(0, 0, 0, 0.02);
             border: 1px solid var(--card-border);
             padding: 10px 14px;
             border-radius: 8px;
@@ -562,10 +565,10 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(0, 0, 0, 0.08);
             transition: .3s;
             border-radius: 22px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
         }
 
         .slider:before {
@@ -581,13 +584,13 @@
         }
 
         input:checked+.slider {
-            background-color: var(--accent-cyan);
-            box-shadow: 0 0 8px rgba(0, 242, 254, 0.4);
+            background-color: var(--primary-glow);
+            box-shadow: 0 0 6px rgba(0, 112, 243, 0.3);
         }
 
         input:checked+.slider:before {
             transform: translateX(22px);
-            background-color: #0b0e14;
+            background-color: #ffffff;
         }
 
         .btn-submit {
@@ -859,32 +862,32 @@
         <!-- Navigation Header -->
         <header>
             <div class="logo-area">
-                <div class="logo-icon">R</div>
+                <div class="logo-icon">C</div>
                 <div class="logo-title">
-                    <h1>ROBORDER-X</h1>
-                    <p>QUANT FUTURES HIGH-FREQUENCY HFT ENGINE</p>
+                    <h1>ROBOCHILD</h1>
+                    <p>QUANT FUTURES VOLUME BASE HFT ENGINE</p>
                 </div>
             </div>
             <!-- نمایش وضعیت پینگ وب‌سوکت‌ها و سود کل -->
             <div
                 style="display: flex; gap: 12px; font-size: 11px; font-weight: 600; color: var(--text-muted); direction: ltr; font-family: 'Inter', sans-serif; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.02); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: 8px;"
+                <div style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.02); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: 8px;"
                     id="header-pnl-badge">
                     <span style="color: var(--text-muted); font-size: 9px; text-transform: uppercase;">Total PnL:</span>
                     <span id="header-total-pnl"
                         style="color: var(--neon-green); font-weight: 700; font-family: 'Inter'; font-size: 11px;">$0.00+</span>
                 </div>
                 <div
-                    style="display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.02); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: 8px;">
+                    style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.02); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: 8px;">
                     <span id="ping-binance-dot"
-                        style="width: 8px; height: 8px; border-radius: 50%; background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); transition: all 0.3s;"></span>
+                        style="width: 8px; height: 8px; border-radius: 50%; background: var(--neon-green); box-shadow: 0 0 6px var(--neon-green); transition: all 0.3s;"></span>
                     <span>Binance Ping:</span>
                     <span id="ping-binance-val" style="color: var(--text-main);">0.0ms</span>
                 </div>
                 <div
-                    style="display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.02); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: 8px;">
+                    style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.02); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: 8px;">
                     <span id="ping-solana-dot"
-                        style="width: 8px; height: 8px; border-radius: 50%; background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); transition: all 0.3s;"></span>
+                        style="width: 8px; height: 8px; border-radius: 50%; background: var(--neon-green); box-shadow: 0 0 6px var(--neon-green); transition: all 0.3s;"></span>
                     <span>Solana RPC:</span>
                     <span id="ping-solana-val" style="color: var(--text-main);">0.0ms</span>
                 </div>
@@ -2726,7 +2729,7 @@
             const isWin = t.pnl > 0;
 
             let text = `====================================================================
-               ROBORDER-X // گزارش تحلیل و ممیزی جامع معامله
+               ROBOCHILD // گزارش تحلیل و ممیزی جامع معامله
 ====================================================================
 
 [مشخصات عمومی معامله]
@@ -2846,14 +2849,14 @@
             }
 
             text += `\n====================================================================
-گزارش توسط هسته پردازش آماری و معاملاتی فرکانس بالا ROBORDER-X صادر گردیده است.
+گزارش توسط هسته پردازش آماری و معاملاتی حجمی ROBOCHILD صادر گردیده است.
 `;
 
             const blob = new Blob([text], { type: "text/plain;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
-            link.setAttribute("download", `roborder_trade_${t.symbol.replace(/\//g, "_").replace(/:/g, "_")}_${t.exitTime}.txt`);
+            link.setAttribute("download", `robochild_trade_${t.symbol.replace(/\//g, "_").replace(/:/g, "_")}_${t.exitTime}.txt`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);

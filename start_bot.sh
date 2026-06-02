@@ -5,14 +5,14 @@
 CDIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$CDIR"
 
-# Detect if port 3000 is already active
-if netstat -ano 2>/dev/null | grep -q "LISTENING" | grep -q ":3000" || lsof -i :3000 -t >/dev/null 2>&1; then
-    echo "[INFO] ROBORDER-X is already running in the background!"
+# Detect if port 6006 is already active
+if netstat -ano 2>/dev/null | grep -q "LISTENING" | grep -q ":6006" || lsof -i :6006 -t >/dev/null 2>&1; then
+    echo "[INFO] ROBOCHILD is already running in the background!"
     echo "[INFO] Opening the interactive dashboard in your browser..."
     if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
-        start http://localhost:3000
+        start http://localhost:6006
     else
-        xdg-open http://localhost:3000 || open http://localhost:3000
+        xdg-open http://localhost:6006 || open http://localhost:6006
     fi
     exit 0
 fi
@@ -32,7 +32,7 @@ if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
     # Start completely detached
     "$PYTHON_BIN" -m src.main &
     sleep 3
-    start http://localhost:3000
+    start http://localhost:6006
 else
     # Linux / macOS
     PYTHON_BIN="python3"
@@ -49,8 +49,8 @@ else
     sleep 3
     # تنها در صورتی مرورگر را باز کن که سرور دارای رابط گرافیکی باشد (نه سرور ابری AWS)
     if [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; then
-        xdg-open http://localhost:3000 >/dev/null 2>&1 || open http://localhost:3000 >/dev/null 2>&1
+        xdg-open http://localhost:6006 >/dev/null 2>&1 || open http://localhost:6006 >/dev/null 2>&1
     fi
 fi
 
-echo "[SUCCESS] ROBORDER-X has been successfully launched in the background!"
+echo "[SUCCESS] ROBOCHILD has been successfully launched in the background!"

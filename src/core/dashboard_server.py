@@ -25,7 +25,7 @@ if not logger.handlers:
 global_engine = None
 global_executor = None
 global_loop = None  # رفرنس ایمن به حلقه اصلی asyncio جهت زمان‌بندی تسک‌ها از تردهای پس‌زمینه
-PORT = 3000
+PORT = 6006
 
 # رجیستری آموزش شبکه عصبی پس‌زمینه
 active_trainings = {}
@@ -89,13 +89,13 @@ def scan_existing_models():
     try:
         for f in os.listdir(models_dir):
             if f.endswith("_final.zip"):
-                parts = f.replace("ppo_futures_bot_", "").replace("_final.zip", "")
+                parts = f.replace("ppo_volume_bars_child_", "").replace("_final.zip", "")
                 if parts == "final" or parts == "bot" or parts == "" or parts == "final.zip":
                     symbol = "BTC/USDT"
                 else:
                     symbol = parts.upper() + "/USDT"
                 available.append(symbol)
-            elif f == "ppo_futures_bot_final.zip":
+            elif f == "ppo_volume_bars_child_final.zip":
                 available.append("BTC/USDT")
     except Exception as e:
         logger.error(f"Error scanning models directory: {e}")
@@ -119,11 +119,11 @@ def background_train_orchestrator(symbol: str, steps: int = 200000):
     log_event(f"🧠 شروع آموزش پس‌زمینه شبکه عصبی هوش مصنوعی برای {symbol}...")
     log_event(f"🧠 تخصیص تعداد {steps:,} گام روی تایم‌فریم {timeframe} ({days_back} روز داده تاریخی)")
 
-    progress_file = os.path.join("models", f"progress_ppo_futures_bot_{symbol_clean}.json")
+    progress_file = os.path.join("models", f"progress_ppo_volume_bars_child_{symbol_clean}.json")
     os.makedirs("models", exist_ok=True)
     with open(progress_file, "w") as f:
         json.dump({
-            "model_name": f"ppo_futures_bot_{symbol_clean}",
+            "model_name": f"ppo_volume_bars_child_{symbol_clean}",
             "current_step": 0,
             "total_steps": steps,
             "percentage": 0.0,
@@ -158,7 +158,7 @@ def background_train_orchestrator(symbol: str, steps: int = 200000):
             total_timesteps=steps,
             model_save_dir="models",
             tb_log_dir="tb_logs",
-            model_name=f"ppo_futures_bot_{symbol_clean}",
+            model_name=f"ppo_volume_bars_child_{symbol_clean}",
             check_stop_fn=check_stop
         )
 
@@ -173,7 +173,7 @@ def background_train_orchestrator(symbol: str, steps: int = 200000):
         # پاک‌سازی استپ و اتمام وضعیت
         with open(progress_file, "w") as f:
             json.dump({
-                "model_name": f"ppo_futures_bot_{symbol_clean}",
+                "model_name": f"ppo_volume_bars_child_{symbol_clean}",
                 "current_step": steps,
                 "total_steps": steps,
                 "percentage": 100.0,
@@ -499,7 +499,7 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
                 return
                 
             symbol_clean = symbol.split('/')[0].lower()
-            model_file = f"models/ppo_futures_bot_{symbol_clean}_final.zip"
+            model_file = f"models/ppo_volume_bars_child_{symbol_clean}_final.zip"
             
             exists = os.path.exists(model_file)
             self.send_json({"exists": exists, "symbol": symbol})

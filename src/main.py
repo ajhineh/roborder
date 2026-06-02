@@ -218,6 +218,23 @@ async def main():
     logger.info("       🚀 Welcome to ROBORDER-X Production Engine 🚀       ")
     logger.info("==========================================================")
 
+    # Auto-configure crontab for macro news updates on Linux
+    if sys.platform != "win32":
+        try:
+            import subprocess
+            logger.info("🔍 Checking system crontab configuration...")
+            result = subprocess.run("crontab -l", shell=True, capture_output=True, text=True)
+            current_cron = result.stdout or ""
+            if "macro_news_updater.py" not in current_cron:
+                logger.info("🔧 Auto-configuring crontab for macro_news_updater.py...")
+                cron_cmd = '(crontab -l 2>/dev/null; echo "0 0 * * * /home/ubuntu/opt/ROBORDER/venv/bin/python /home/ubuntu/opt/ROBORDER/src/core/macro_news_updater.py >> /home/ubuntu/opt/ROBORDER/roborder_x.log 2>&1") | crontab -'
+                subprocess.run(cron_cmd, shell=True, check=True)
+                logger.info("✅ Crontab configured successfully!")
+            else:
+                logger.info("📅 Crontab is already configured for macro news updates.")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to auto-configure crontab: {e}")
+
     # ۱. راه‌اندازی ماژول اجرای فرامین و کنترل ریسک پیش‌معاملاتی (PTRC) از روی متغیرهای محیطی
     executor = OrderExecutor(
         exchange_id=Config.EXCHANGE_ID,
@@ -244,7 +261,7 @@ async def main():
     # راه‌اندازی وب سرور داشبورد تعاملی در ترد پس‌زمینه مستقل
     # ارسال رفرنس حلقه اصلی asyncio جهت زمان‌بندی ایمن تسک‌ها از ترد HTTP
     _main_loop = asyncio.get_running_loop()
-    start_dashboard_server(engine, executor, port=3000, loop=_main_loop)
+    start_dashboard_server(engine, executor, port=6006, loop=_main_loop)
 
     # ۳. تعریف کالبک ناهمگام و اتصال خروجی‌های معتبر موتور هیبریدی به کلاینت صرافی
     async def handle_execute_entry(trade):
