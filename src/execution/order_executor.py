@@ -315,9 +315,31 @@ class OrderExecutor:
                         remaining_amount = token_amount # فالبک در صورت خطا
                     
                     if remaining_amount > 0:
-                        logger.info(f"🛒 Sending Emergency Market Exit Order: {exit_side.upper()} {remaining_amount:.4f} {symbol}")
-                        order = await self.exchange.create_market_order(symbol, exit_side, remaining_amount)
-                        logger.info(f"🎉 Emergency Market Exit executed. Order ID: {order['id']}")
+                        logger.info(f"🛒 Sending Emergency Market Exit Order (Limit with 2% Slippage Guard) for {symbol} | Amount: {remaining_amount:.4f}")
+                        try:
+                            # دریافت قیمت بهترین بید/اسک زنده جهت اعمال انحراف ۲٪ به عنوان سقف لغزش قیمت
+                            ticker = await self.exchange.fetch_ticker(symbol)
+                            current_market_price = ticker['bid'] if exit_side == "sell" else ticker['ask']
+                            
+                            # اعمال ۲٪ انحراف قیمت (در پوزیشن خرید جهت فروش پایین‌تر، در پوزیشن فروش جهت خرید بالاتر)
+                            if exit_side == "sell":
+                                protect_price = current_market_price * 0.98
+                            else:
+                                protect_price = current_market_price * 1.02
+                                
+                            # ارسال سفارش لیمیت عادی (بدون postOnly) با قیمت محافظت شده جهت تضمین پر شدن سریع
+                            order = await self.exchange.create_limit_order(
+                                symbol=symbol,
+                                side=exit_side,
+                                amount=remaining_amount,
+                                price=protect_price
+                            )
+                            logger.info(f"🎉 Emergency Exit Limit Order with 2% Slippage Guard executed. Order ID: {order['id']}")
+                        except Exception as market_err:
+                            logger.error(f"Slippage Guard Limit Order failed: {market_err}. Attempting raw market order fallback...")
+                            # فالبک به سفارش مارکت خالص در صورت بروز خطای لیمیت اردر
+                            order = await self.exchange.create_market_order(symbol, exit_side, remaining_amount)
+                            logger.info(f"🎉 Emergency Raw Market Exit executed. Order ID: {order['id']}")
 
             except Exception as e:
                 logger.error(f"❌ Exchange Exit Order Pipeline Failed: {e}. Positions will be forcefully closed locally.")
